@@ -1,167 +1,161 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Box,
   Container,
   Typography,
-  Avatar,
-  Chip,
-  LinearProgress,
   Grid,
   Paper,
+  Button,
+  Skeleton,
+  Alert,
   ImageList,
   ImageListItem,
-  Stack,
+  Rating,
+  Avatar,
   Divider,
-  Button
+  Toolbar
 } from '@mui/material'
-import LocationOnIcon from '@mui/icons-material/LocationOn'
-import StarIcon from '@mui/icons-material/Star'
-import VisibilityIcon from '@mui/icons-material/Visibility'
-import AddIcon from '@mui/icons-material/Add'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+// ## FIX 1: Import the new hook ##
+import { useFirestoreDoc } from '@/api/useFirestoreDoc'
+import GlobalHeader from '../global/GlobalHeader'
+import ElevationScroll from '../global/ElevationScroll'
+import GlobalFooter from '../global/GlobalFooter'
 
-// Placeholder data for the provider
-const providerData = {
-  name: 'Mohan Sharma',
-  location: 'Basti, Uttar Pradesh, India',
-  profileImage: 'https://via.placeholder.com/150/f0f0f0/000?Text=MS', // Placeholder avatar
-  skills: [
-    { name: 'Plumbing', level: 0.8 },
-    { name: 'Carpentry', level: 0.65 },
-    { name: 'Electrical Wiring', level: 0.9 },
-    { name: 'Painting', level: 0.75 }
-  ],
-  description:
-    'Experienced and reliable handyman providing quality services in Basti and surrounding areas. Specializing in plumbing, carpentry, and electrical work. Contact me for your home repair needs!',
-  views: 125,
-  stars: 4.8,
-  reviewCount: 32
-}
+const ProviderProfile = () => {
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
-// Placeholder images of the provider's work
-const workImages = [
-  'https://via.placeholder.com/300/cccccc/000?Text=Work+Sample+1',
-  'https://via.placeholder.com/300/dddddd/000?Text=Work+Sample+2',
-  'https://via.placeholder.com/300/eeeeee/000?Text=Work+Sample+3',
-  'https://via.placeholder.com/300/f0f0f0/000?Text=Work+Sample+4'
-]
+  const serviceId = searchParams.get('serviceId')
+  const providerId = searchParams.get('providerId')
 
-const ProviderProfilePage = () => {
+  const providerPath = useMemo(() => {
+    return serviceId && providerId ? `services/${serviceId}/providers/${providerId}` : null
+  }, [serviceId, providerId])
+
+  // ## FIX 2: Use the new useFirestoreDoc hook ##
+  const { data: provider, error, loading } = useFirestoreDoc(providerPath)
+
+  const handleRequestService = () => {
+    router.push(`/booking?serviceId=${serviceId}&providerId=${providerId}`)
+  }
+
+  // Skeletons remain the same
+  const renderSkeletons = () => (
+    <Grid container spacing={4}>
+      <Grid item xs={12} md={5}>
+        <Skeleton variant='rectangular' width='100%' height={400} sx={{ borderRadius: 2 }} />
+        <Skeleton variant='rectangular' width='100%' height={56} sx={{ mt: 2, borderRadius: 2 }} />
+      </Grid>
+      <Grid item xs={12} md={7}>
+        <Skeleton variant='text' width='60%' height={48} />
+        <Skeleton variant='text' width='40%' height={24} />
+        <Skeleton variant='text' width='50%' height={32} sx={{ my: 2 }} />
+        <Skeleton variant='text' width='100%' height={20} />
+        <Skeleton variant='text' width='100%' height={20} />
+        <Skeleton variant='text' width='80%' height={20} />
+        <Skeleton variant='rectangular' width='100%' height={250} sx={{ mt: 3, borderRadius: 2 }} />
+      </Grid>
+    </Grid>
+  )
+
   return (
-    <Container maxWidth='md' sx={{ mt: 4, mb: 4 }}>
-      <Button startIcon={<ArrowBackIcon />} sx={{ mb: 2 }}>
-        Back to Providers
-      </Button>
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar src={providerData.profileImage} sx={{ width: 80, height: 80, mr: 2 }} />
-            <Box>
-              <Typography variant='h5' component='h2'>
-                {providerData.name}
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                <LocationOnIcon sx={{ mr: 0.5, fontSize: 'inherit', verticalAlign: 'middle' }} />
-                {providerData.location}
-              </Typography>
-            </Box>
-          </Box>
-          {/* Placeholder for edit/options */}
-          {/* <IconButton aria-label="add an alarm">
-              <MoreVertIcon />
-            </IconButton> */}
-        </Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'grey.50' }}>
+      <ElevationScroll>
+        <GlobalHeader />
+      </ElevationScroll>
+      <Toolbar />
 
-        <Divider sx={{ mb: 2 }} />
+      <Container maxWidth='lg' sx={{ py: 4, flexGrow: 1 }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => router.back()} sx={{ mb: 3 }}>
+          Back to Providers
+        </Button>
 
-        {/* Skills Section */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant='h6' gutterBottom>
-            Skills
-          </Typography>
-          <Stack spacing={2}>
-            {providerData.skills.map((skill, index) => (
-              <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography variant='subtitle1' sx={{ width: 120 }}>
-                  {skill.name}
+        {loading && renderSkeletons()}
+        {error && <Alert severity='error'>{error}</Alert>}
+        {!loading && !error && !provider && (
+          <Alert severity='warning'>Provider not found. They may no longer be available.</Alert>
+        )}
+
+        {provider && (
+          <Paper elevation={0} sx={{ p: { xs: 2, md: 4 }, bgcolor: 'white', borderRadius: 2 }}>
+            <Grid container spacing={{ xs: 3, md: 5 }}>
+              <Grid item xs={12} md={5}>
+                <Box
+                  component='img'
+                  src={provider.profileimg || 'https://via.placeholder.com/600x600?text=No+Image'}
+                  alt={`Profile of ${provider.Name}`}
+                  sx={{ width: '100%', maxHeight: '500px', objectFit: 'cover', borderRadius: 2, mb: 3 }}
+                />
+                <Button variant='contained' size='large' fullWidth onClick={handleRequestService}>
+                  Request Service
+                </Button>
+              </Grid>
+
+              <Grid item xs={12} md={7}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box>
+                    <Typography variant='h4' component='h1' fontWeight='bold'>
+                      {provider.Name}
+                    </Typography>
+                    <Typography variant='body1' color='text.secondary'>
+                      {provider.Location}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
+                  <Rating value={parseFloat(provider.rating) || 0} precision={0.5} readOnly />
+                  <Typography sx={{ ml: 1.5 }} variant='body1' color='text.secondary'>
+                    {provider.rating || 'No rating'} ({provider.reviewCount || 0} reviews)
+                  </Typography>
+                </Box>
+
+                <Divider sx={{ my: 3 }} />
+
+                <Typography variant='h6' fontWeight='bold' gutterBottom>
+                  About
                 </Typography>
-                <LinearProgress variant='determinate' value={skill.level * 100} sx={{ flexGrow: 1, mr: 1 }} />
-                <Typography variant='body2' color='text.secondary'>
-                  {Math.round(skill.level * 100)}%
+                <Typography variant='body1' paragraph color='text.secondary'>
+                  {provider.description || 'No description available.'}
                 </Typography>
-              </Box>
-            ))}
-            {/* Placeholder for adding more skills */}
-            {/* <Button size="small" startIcon={<AddIcon />}>Add Skill</Button> */}
-          </Stack>
-        </Box>
 
-        <Divider sx={{ mb: 2 }} />
+                <Divider sx={{ my: 3 }} />
 
-        {/* Work Samples */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant='h6' gutterBottom>
-            Work Samples
-          </Typography>
-          {workImages.length > 0 ? (
-            <ImageList rowHeight={200} cols={3} gap={8}>
-              {workImages.map((item, index) => (
-                <ImageListItem key={index}>
-                  <img
-                    src={`${item}?w=300&h=200&fit=crop&auto=format`}
-                    alt={`Work sample ${index + 1}`}
-                    loading='lazy'
-                    style={{ borderRadius: 4, display: 'block', width: '100%', height: 'auto' }}
-                  />
-                </ImageListItem>
-              ))}
-            </ImageList>
-          ) : (
-            <Typography variant='body2' color='text.secondary'>
-              No work samples available.
-            </Typography>
-          )}
-          {/* Placeholder for adding more work images */}
-          {/* <Button size="small" startIcon={<AddIcon />}>Add Work Image</Button> */}
-        </Box>
+                <Typography variant='h6' fontWeight='bold' gutterBottom>
+                  Work Gallery
+                </Typography>
+                {/* ## FIX 4: Corrected typo from workImage to workImages ## */}
+                {provider.workImages && provider.workImages.length > 0 ? (
+                  <ImageList variant='quilted' cols={3} rowHeight={164} gap={8}>
+                    {provider.workImages.map((img, index) => (
+                      <ImageListItem key={index}>
+                        <img
+                          src={img}
+                          alt={`Work sample ${index + 1}`}
+                          loading='lazy'
+                          style={{ borderRadius: '8px' }}
+                        />
+                      </ImageListItem>
+                    ))}
+                  </ImageList>
+                ) : (
+                  <Typography variant='body2' color='text.secondary'>
+                    No work samples have been uploaded yet.
+                  </Typography>
+                )}
+              </Grid>
+            </Grid>
+          </Paper>
+        )}
+      </Container>
 
-        <Divider sx={{ mb: 2 }} />
-
-        {/* Description */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant='h6' gutterBottom>
-            About Me
-          </Typography>
-          <Typography variant='body1'>{providerData.description}</Typography>
-        </Box>
-
-        <Divider sx={{ mb: 2 }} />
-
-        {/* Recognition/Stats */}
-        <Box sx={{ display: 'flex', gap: 3, alignItems: 'center', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <VisibilityIcon color='primary' sx={{ mr: 0.5 }} />
-            <Typography variant='body2'>{providerData.views} Views</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <StarIcon color='warning' sx={{ mr: 0.5 }} />
-            <Typography variant='body2'>
-              {providerData.stars} ({providerData.reviewCount} Reviews)
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Contact Button */}
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Button variant='contained' color='primary' size='large'>
-            Contact Provider
-          </Button>
-        </Box>
-      </Paper>
-    </Container>
+      <GlobalFooter />
+    </Box>
   )
 }
 
-export default ProviderProfilePage
+export default ProviderProfile

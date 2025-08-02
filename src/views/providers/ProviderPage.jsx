@@ -1,15 +1,14 @@
-// src/ProvidersListPage.js
 'use client'
+
+import React, { useState, useEffect, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { auth } from '@/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import useUserApi from '@/api/useUserApi'
-import React, { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useFirestore } from '@/api/useFirestore'
+
 import {
-  AppBar,
-  Toolbar,
   Typography,
-  Avatar,
   Button,
   Box,
   Container,
@@ -19,13 +18,18 @@ import {
   Select,
   MenuItem,
   Alert,
-  Skeleton
+  Skeleton,
+  Paper,
+  TextField,
+  Slider,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
+  Rating,
+  Toolbar // Make sure Toolbar is imported
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import LogoutIcon from '@mui/icons-material/Logout'
-import ProviderCard from './ProviderCard'
-import { useSearchParams } from 'next/navigation'
-import { useFirestore } from '@/api/useFirestore' // Assuming this path is correct
 import GlobalHeader from '../global/GlobalHeader'
 import ElevationScroll from '../global/ElevationScroll'
 import GlobalFooter from '../global/GlobalFooter'
@@ -33,17 +37,18 @@ import GlobalFooter from '../global/GlobalFooter'
 const ProviderPage = () => {
   const searchParams = useSearchParams()
   const serviceId = searchParams.get('serviceId')
-  const { fetchUserData, userData } = useUserApi()
+  const { fetchUserData } = useUserApi()
+  const router = useRouter() // Initialize the router
 
-  // State for the single filter we will use
-  const [typeFilter, setTypeFilter] = useState('All Types')
+  // --- State for Filters ---
+  const [locationFilter, setLocationFilter] = useState('')
+  const [sortBy, setSortBy] = useState('rating_desc')
+  const [priceRange, setPriceRange] = useState([0, 500])
 
   const [user, setUser] = useState(null)
-
-  const router = useRouter()
   const [loadingData, setLoadingData] = useState(true)
 
-  // Fetch data from Firestore using the custom hook
+  // Fetch data from Firestore
   const {
     data: firestoreProviders,
     fetchData: fetchProviders,
@@ -51,42 +56,48 @@ const ProviderPage = () => {
     error
   } = useFirestore(serviceId ? `services/${serviceId}/providers` : null)
 
-  // Trigger data fetching when the component mounts or serviceId changes
   useEffect(() => {
     if (serviceId) {
       fetchProviders()
     }
-    // Reset filter when serviceId changes
-    setTypeFilter('All Types')
   }, [serviceId, fetchProviders])
 
   // --- Data Transformation and Filtering Logic ---
-
-  // 1. Memoize the transformation of Firestore data to match the expected format for the UI
   const formattedProviders = useMemo(() => {
     if (!firestoreProviders) return []
     return firestoreProviders.map(p => ({
-      id: p.id, // useFirestore hook should provide the document ID
+      id: p.id,
       name: p.Name,
       type: p.Type,
       location: p.Location,
-      price: p.Price,
-      profileImageUrl: p.profileimg || null, // Handle empty profile image URL
-      contact: p.contact
+      price: parseFloat(p.Price) || 0,
+      rating: parseFloat(p.rating) || 0,
+      profileImageUrl: p.profileimg || `https://source.unsplash.com/random/400x400?face&sig=${p.id}`
     }))
   }, [firestoreProviders])
 
-  // 2. Get unique types from the formatted data for the filter dropdown
-  const uniqueTypes = useMemo(() => [...new Set(formattedProviders.map(p => p.type))], [formattedProviders])
+  const filteredAndSortedProviders = useMemo(() => {
+    let providers = [...formattedProviders] // Create a mutable copy
 
-  // 3. Filter providers based on the selected type
-  const filteredProviders = useMemo(
-    () =>
-      formattedProviders.filter(provider => {
-        return typeFilter === 'All Types' || provider.type === typeFilter
-      }),
-    [formattedProviders, typeFilter]
-  )
+    if (locationFilter) {
+      providers = providers.filter(p => p.location.toLowerCase().includes(locationFilter.toLowerCase()))
+    }
+    providers = providers.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1])
+
+    providers.sort((a, b) => {
+      switch (sortBy) {
+        case 'rating_desc':
+          return b.rating - a.rating
+        case 'price_asc':
+          return a.price - b.price
+        case 'price_desc':
+          return b.price - a.price
+        default:
+          return 0
+      }
+    })
+    return providers
+  }, [formattedProviders, locationFilter, sortBy, priceRange])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, currentUser => {
@@ -99,77 +110,127 @@ const ProviderPage = () => {
       setLoadingData(false)
     })
     return () => unsubscribe()
-  }, [router])
+  }, [router, fetchUserData])
 
   const handleLogout = async () => {
     await signOut(auth)
     router.push('/landingpage')
   }
 
+  const pageTitle = serviceId ? `${serviceId.charAt(0).toUpperCase() + serviceId.slice(1)} Providers` : 'All Providers'
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'white' }}>
-      {/* 1. Global Header */}
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'grey.50' }}>
       <ElevationScroll>
         <GlobalHeader handleLogout={handleLogout} />
       </ElevationScroll>
-      <Toolbar /> {/* Spacer */}
-      {/* 2. Main Content Area */}
-      <Container maxWidth='lg' sx={{ py: 4 }}>
-        <Button startIcon={<ArrowBackIcon />} sx={{ mb: 2 }}>
-          Back to Home
+      <Toolbar />
+
+      <Container maxWidth='lg' sx={{ py: 4, flexGrow: 1 }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => router.push('/')} sx={{ mb: 2 }}>
+          Back to Services
         </Button>
 
-        <Typography variant='h4' component='h1' gutterBottom align='center' fontWeight='bold'>
-          Explore Our Providers
+        <Typography variant='h3' component='h1' gutterBottom fontWeight='bold' sx={{ mb: 3 }}>
+          {pageTitle}
         </Typography>
 
-        {/* 3. Filters Section - Now with only a Type filter */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-          <FormControl sx={{ m: 1, minWidth: 240 }}>
-            <InputLabel>Filter by Type</InputLabel>
-            <Select value={typeFilter} label='Filter by Type' onChange={e => setTypeFilter(e.target.value)}>
-              <MenuItem value='All Types'>All Types</MenuItem>
-              {uniqueTypes.map(type => (
-                <MenuItem key={type} value={type}>
-                  {type}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
+        <Paper elevation={2} sx={{ p: 3, mb: 5, borderRadius: 2 }}>
+          <Grid container spacing={3} alignItems='center'>
+            {/* Filter components remain the same */}
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label='Filter by Location'
+                variant='outlined'
+                value={locationFilter}
+                onChange={e => setLocationFilter(e.target.value)}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Sort by</InputLabel>
+                <Select value={sortBy} label='Sort by' onChange={e => setSortBy(e.target.value)}>
+                  <MenuItem value='rating_desc'>Rating (High to Low)</MenuItem>
+                  <MenuItem value='price_asc'>Price (Low to High)</MenuItem>
+                  <MenuItem value='price_desc'>Price (High to Low)</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={5}>
+              <Typography gutterBottom>
+                Price Range (${priceRange[0]} - ${priceRange[1]})
+              </Typography>
+              <Slider
+                value={priceRange}
+                onChange={(e, newValue) => setPriceRange(newValue)}
+                valueLabelDisplay='auto'
+                min={0}
+                max={1000}
+                step={10}
+              />
+            </Grid>
+          </Grid>
+        </Paper>
 
-        {/* 4. Conditional Messages & Providers Grid */}
-        {error && <Alert severity='error' sx={{ mb: 4 }}>{`Error: ${error}`}</Alert>}
-
-        {!loading && !error && filteredProviders.length === 0 && (
-          <Alert severity='info' sx={{ mt: 4 }}>
-            {firestoreProviders.length > 0
-              ? 'No providers found matching your criteria.'
-              : 'No providers found for this service.'}
-          </Alert>
-        )}
-
+        {/* --- Grid of Provider Cards --- */}
         <Grid container spacing={4}>
           {loading
-            ? // Loading Skeletons
-              Array.from(new Array(6)).map((_, index) => (
+            ? Array.from(new Array(6)).map((_, index) => (
                 <Grid item key={index} xs={12} sm={6} md={4}>
-                  <Skeleton variant='rectangular' height={160} />
-                  <Box sx={{ pt: 0.5 }}>
-                    <Skeleton />
-                    <Skeleton width='60%' />
-                  </Box>
+                  <Skeleton variant='rectangular' height={200} sx={{ borderRadius: 2 }} />
+                  <Skeleton width='80%' height={28} />
+                  <Skeleton width='40%' />
                 </Grid>
               ))
-            : // Provider Cards
-              filteredProviders.map(provider => (
+            : filteredAndSortedProviders.map(provider => (
                 <Grid item key={provider.id} xs={12} sm={6} md={4}>
-                  <ProviderCard provider={provider} />
+                  {/*
+                   *
+                   * ## KEY CHANGE IS HERE ##
+                   * The entire Card is now clickable and navigates to the detail page.
+                   *
+                   */}
+                  <Card
+                    sx={{
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      borderRadius: 2,
+                      cursor: 'pointer', // Add pointer cursor to indicate it's clickable
+                      transition: '0.3s',
+                      '&:hover': { boxShadow: 6 }
+                    }}
+                    onClick={() => router.push(`/providerprofile?serviceId=${serviceId}&providerId=${provider.id}`)}
+                  >
+                    <CardMedia component='img' height='200' image={provider.profileImageUrl} alt={provider.name} />
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Typography variant='h6' component='h2' fontWeight='bold'>
+                        {provider.name}
+                      </Typography>
+                      <Typography variant='body2' color='text.secondary' sx={{ mb: 1 }}>
+                        {provider.location}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <Rating value={provider.rating} precision={0.5} readOnly />
+                        <Typography variant='body2' color='text.secondary' sx={{ ml: 1 }}>
+                          ({provider.rating})
+                        </Typography>
+                      </Box>
+                      <Typography variant='h6' fontWeight='bold' color='primary.main'>
+                        ${provider.price}/hr
+                      </Typography>
+                    </CardContent>
+                    <CardActions sx={{ p: 2, pt: 0 }}>
+                      <Button fullWidth variant='contained' size='large' component='div' tabIndex={-1}>
+                        View Profile
+                      </Button>
+                    </CardActions>
+                  </Card>
                 </Grid>
               ))}
         </Grid>
       </Container>
-      {/* 5. Global Footer */}
       <GlobalFooter />
     </Box>
   )

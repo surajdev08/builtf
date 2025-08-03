@@ -70,6 +70,7 @@ const ProviderPage = () => {
       name: p.Name,
       type: p.Type,
       location: p.Location,
+      priceUnit: p.priceUnit,
       price: parseFloat(p.Price) || 0,
       rating: parseFloat(p.rating) || 0,
       profileImageUrl: p.profileimg || `https://source.unsplash.com/random/400x400?face&sig=${p.id}`
@@ -218,7 +219,7 @@ const ProviderPage = () => {
                         </Typography>
                       </Box>
                       <Typography variant='h6' fontWeight='bold' color='primary.main'>
-                        ${provider.price}/hr
+                        {provider.price}rs{provider.priceUnit}
                       </Typography>
                     </CardContent>
                     <CardActions sx={{ p: 2, pt: 0 }}>

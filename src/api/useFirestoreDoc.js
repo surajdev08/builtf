@@ -1,3 +1,4 @@
+// src/api/useFirestoreDoc.js
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useState, useCallback, useEffect } from 'react'
@@ -9,14 +10,17 @@ export function useFirestoreDoc(path) {
 
   const fetchDoc = useCallback(async () => {
     if (!path) {
-      setData(null)
+      setLoading(false) // Stop loading if no path is provided
       return
     }
+    // Set loading to true only when a fetch starts
     setLoading(true)
     setError('')
+
     try {
       const docRef = doc(db, path)
       const docSnap = await getDoc(docRef)
+
       if (docSnap.exists()) {
         const docData = docSnap.data()
         setData({
@@ -33,13 +37,14 @@ export function useFirestoreDoc(path) {
       console.error('Error fetching document:', err)
       setError(err.message)
     } finally {
+      // **CRITICAL:** Always set loading to false after the operation.
       setLoading(false)
     }
   }, [path])
 
   useEffect(() => {
     fetchDoc()
-  }, [fetchDoc])
+  }, [fetchDoc]) // The dependency array is correct
 
   return { data, loading, error, refetch: fetchDoc }
 }

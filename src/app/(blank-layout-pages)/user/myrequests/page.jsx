@@ -6,7 +6,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/firebase'
 import { useRouter } from 'next/navigation'
 
-export default function page() {
+const Page = () => {
   const router = useRouter()
   useEffect(() => {
     // This effect handles user authentication state.
@@ -24,3 +24,5 @@ export default function page() {
   }, [router])
   return <MyRequests />
 }
+
+export default Page

@@ -5,8 +5,9 @@ import { useEffect } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/firebase'
 import { useRouter } from 'next/navigation'
+import { ex } from 'node_modules/@fullcalendar/core/internal-common'
 
-export default function page() {
+const Page = () => {
   const router = useRouter()
   useEffect(() => {
     // This effect handles user authentication state.
@@ -24,3 +25,5 @@ export default function page() {
   }, [router])
   return <Profile />
 }
+
+export default Page

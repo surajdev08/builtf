@@ -1,7 +1,9 @@
 // src/api/useFirestoreDoc.js
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '@/firebase'
 import { useState, useCallback, useEffect } from 'react'
+
+import { doc, getDoc } from 'firebase/firestore'
+
+import { db } from '@/firebase'
 
 export function useFirestoreDoc(path) {
   const [data, setData] = useState(null)
@@ -11,8 +13,11 @@ export function useFirestoreDoc(path) {
   const fetchDoc = useCallback(async () => {
     if (!path) {
       setLoading(false) // Stop loading if no path is provided
-      return
+      
+return
     }
+
+
     // Set loading to true only when a fetch starts
     setLoading(true)
     setError('')
@@ -23,6 +28,7 @@ export function useFirestoreDoc(path) {
 
       if (docSnap.exists()) {
         const docData = docSnap.data()
+
         setData({
           id: docSnap.id,
           ...docData,

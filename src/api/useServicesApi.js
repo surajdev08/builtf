@@ -1,8 +1,13 @@
 'use client'
 
-import { getDocs, collection } from 'firebase/firestore'
-import { db } from '@/firebase' // adjust this path if needed
 import { useState, useCallback, useEffect } from 'react'
+
+import { getDocs, collection } from 'firebase/firestore'
+
+import { db } from '@/firebase'
+
+ // adjust this path if needed
+
 export function useServicesApi(path) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(false)
@@ -13,9 +18,11 @@ export function useServicesApi(path) {
 
     setLoading(true)
     setError('')
+
     try {
       const snapshot = await getDocs(collection(db, path))
       const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
       setData(results)
     } catch (err) {
       console.error('Error fetching data:', err)
@@ -30,6 +37,7 @@ export function useServicesApi(path) {
 
     setLoading(true)
     setError('')
+
     try {
       await addDoc(collection(db, path), newData)
       await fetchData()

@@ -72,7 +72,7 @@ const Profile = () => {
     })
 
     return () => unsubscribe()
-  }, [router])
+  }, [router, fetchUserData])
 
   if (loading) return <Typography>Loading profile...</Typography>
 

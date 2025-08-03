@@ -1,7 +1,10 @@
-import { getDocs, addDoc, updateDoc, deleteDoc, collection, doc } from 'firebase/firestore'
-import { db } from '@/firebase'
 import { useState, useCallback } from 'react'
+
+import { getDocs, addDoc, updateDoc, deleteDoc, collection, doc } from 'firebase/firestore'
+
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+
+import { db } from '@/firebase'
 
 export function useFirestore(path) {
   const [data, setData] = useState([])
@@ -12,19 +15,25 @@ export function useFirestore(path) {
     if (!path) return
     setLoading(true)
     setError('')
+
     try {
       const snapshot = await getDocs(collection(db, path))
+
       const results = snapshot.docs.map(d => {
         const docData = d.data()
-        return {
+
+        
+return {
           id: d.id,
           ...docData,
           createdAt: docData.createdAt?.toDate?.(),
           updatedAt: docData.updatedAt?.toDate?.()
         }
       })
+
       setData(results)
-      return results
+      
+return results
     } catch (err) {
       console.error('Error fetching data:', err)
       setError(err.message)
@@ -37,23 +46,30 @@ export function useFirestore(path) {
   const uploadImages = async files => {
     const storage = getStorage()
     const urls = []
+
     for (const file of files) {
       const storageRef = ref(storage, `images/${path}/${Date.now()}-${file.name}`)
+
       await uploadBytes(storageRef, file)
       const url = await getDownloadURL(storageRef)
+
       urls.push(url)
     }
-    return urls
+
+    
+return urls
   }
 
   const addData = async (newData, files = []) => {
     if (!path) return
     setLoading(true)
     setError('')
+
     try {
       if (files.length > 0) {
         newData.image = files.length === 1 ? (await uploadImages(files))[0] : await uploadImages(files)
       }
+
       await addDoc(collection(db, path), newData)
       await fetchData()
     } catch (err) {
@@ -68,11 +84,14 @@ export function useFirestore(path) {
     if (!path) return
     setLoading(true)
     setError('')
+
     try {
       if (files.length > 0) {
         updatedData.image = files.length === 1 ? (await uploadImages(files))[0] : await uploadImages(files)
       }
+
       const docRef = doc(db, path, id)
+
       await updateDoc(docRef, updatedData)
       await fetchData()
     } catch (err) {
@@ -87,8 +106,10 @@ export function useFirestore(path) {
     if (!path) return
     setLoading(true)
     setError('')
+
     try {
       const docRef = doc(db, path, id)
+
       await deleteDoc(docRef)
       await fetchData()
     } catch (err) {

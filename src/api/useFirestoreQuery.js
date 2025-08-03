@@ -1,6 +1,8 @@
-import { collection, query, where, onSnapshot } from 'firebase/firestore'
-import { db } from '@/firebase'
 import { useState, useEffect, useCallback } from 'react'
+
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
+
+import { db } from '@/firebase'
 
 export function useFirestoreQuery(collectionPath, field, operator, value) {
   const [data, setData] = useState([])
@@ -10,7 +12,8 @@ export function useFirestoreQuery(collectionPath, field, operator, value) {
   useEffect(() => {
     if (!collectionPath || !field || !value) {
       setLoading(false)
-      return
+      
+return
     }
 
     setLoading(true)
@@ -26,6 +29,7 @@ export function useFirestoreQuery(collectionPath, field, operator, value) {
           ...d.data(),
           createdAt: d.data().createdAt?.toDate?.()
         }))
+
         setData(results)
         setLoading(false)
       },

@@ -59,7 +59,7 @@ const GlobalHeader = ({ handleLogout }) => {
     }
 
     init()
-  }, [user, userRole, getUserRole, router])
+  }, [user, getUserRole, router])
 
   return (
     <AppBar component='nav' sx={{ backgroundColor: 'white', color: '#000', paddingX: 10 }}>

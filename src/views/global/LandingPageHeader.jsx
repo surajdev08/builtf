@@ -41,7 +41,7 @@ const LandingPageHeader = ({ handleLogout }) => {
             sx={{ color: 'black', border: '1px solid black' }}
             onClick={() => router.push('/register')}
           >
-            SignUp
+            Register
           </Button>
           <Button
             variant='contained'
